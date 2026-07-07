@@ -3,20 +3,35 @@ info:
   # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: API do Sistema Financeiro
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: categorias
+    description: Categorias de transações
+  - name: contas
+    description: Contas bancárias/carteiras
+  - name: transacoes
+    description: Receitas e despesas
+  - name: contasAPagar
+    description: Contas a pagar
+  - name: contasAReceber
+    description: Contas a receber
+  - name: fluxoCaixa
+    description: Fluxo de caixa
+  - name: dashboard
+    description: Resumos e métricas do dashboard
+  - name: relatorios
+    description: Relatórios e exportação
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,6 +39,785 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  # ─────────────────────────── CATEGORIAS ───────────────────────────
+  /categorias:
+    get:
+      operationId: listCategorias
+      tags: [categorias]
+      summary: Listar categorias
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [receita, despesa, todas]
+      responses:
+        "200":
+          description: Lista de categorias
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Categoria"
+    post:
+      operationId: createCategoria
+      tags: [categorias]
+      summary: Criar categoria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaInput"
+      responses:
+        "201":
+          description: Categoria criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categoria"
+
+  /categorias/{id}:
+    get:
+      operationId: getCategoria
+      tags: [categorias]
+      summary: Buscar categoria por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Categoria
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categoria"
+        "404":
+          description: Não encontrado
+    patch:
+      operationId: updateCategoria
+      tags: [categorias]
+      summary: Atualizar categoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CategoriaUpdate"
+      responses:
+        "200":
+          description: Categoria atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Categoria"
+    delete:
+      operationId: deleteCategoria
+      tags: [categorias]
+      summary: Excluir categoria
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Categoria excluída
+
+  # ─────────────────────────── CONTAS ───────────────────────────
+  /contas:
+    get:
+      operationId: listContas
+      tags: [contas]
+      summary: Listar contas
+      responses:
+        "200":
+          description: Lista de contas
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Conta"
+    post:
+      operationId: createConta
+      tags: [contas]
+      summary: Criar conta
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaInput"
+      responses:
+        "201":
+          description: Conta criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conta"
+
+  /contas/{id}:
+    get:
+      operationId: getConta
+      tags: [contas]
+      summary: Buscar conta por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conta
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conta"
+    patch:
+      operationId: updateConta
+      tags: [contas]
+      summary: Atualizar conta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaUpdate"
+      responses:
+        "200":
+          description: Conta atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Conta"
+    delete:
+      operationId: deleteConta
+      tags: [contas]
+      summary: Excluir conta
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Conta excluída
+
+  # ─────────────────────────── TRANSAÇÕES ───────────────────────────
+  /transacoes:
+    get:
+      operationId: listTransacoes
+      tags: [transacoes]
+      summary: Listar transações com filtros e pesquisa
+      parameters:
+        - name: tipo
+          in: query
+          schema:
+            type: string
+            enum: [receita, despesa]
+        - name: categoriaId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: contaId
+          in: query
+          schema:
+            type: ["integer", "null"]
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pendente, confirmado, cancelado]
+        - name: dataInicio
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: dataFim
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: busca
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista paginada de transações
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TransacaoListResponse"
+    post:
+      operationId: createTransacao
+      tags: [transacoes]
+      summary: Criar transação
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransacaoInput"
+      responses:
+        "201":
+          description: Transação criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transacao"
+
+  /transacoes/{id}:
+    get:
+      operationId: getTransacao
+      tags: [transacoes]
+      summary: Buscar transação por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Transação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transacao"
+        "404":
+          description: Não encontrado
+    patch:
+      operationId: updateTransacao
+      tags: [transacoes]
+      summary: Atualizar transação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TransacaoUpdate"
+      responses:
+        "200":
+          description: Transação atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Transacao"
+    delete:
+      operationId: deleteTransacao
+      tags: [transacoes]
+      summary: Excluir transação
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Transação excluída
+
+  # ─────────────────────────── CONTAS A PAGAR ───────────────────────────
+  /contas-a-pagar:
+    get:
+      operationId: listContasAPagar
+      tags: [contasAPagar]
+      summary: Listar contas a pagar
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pendente, pago, vencido, cancelado]
+        - name: dataInicio
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: dataFim
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: busca
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de contas a pagar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAPagarListResponse"
+    post:
+      operationId: createContaAPagar
+      tags: [contasAPagar]
+      summary: Criar conta a pagar
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaAPagarInput"
+      responses:
+        "201":
+          description: Conta a pagar criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAPagar"
+
+  /contas-a-pagar/{id}:
+    get:
+      operationId: getContaAPagar
+      tags: [contasAPagar]
+      summary: Buscar conta a pagar por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conta a pagar
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAPagar"
+        "404":
+          description: Não encontrado
+    patch:
+      operationId: updateContaAPagar
+      tags: [contasAPagar]
+      summary: Atualizar conta a pagar
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaAPagarUpdate"
+      responses:
+        "200":
+          description: Conta a pagar atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAPagar"
+    delete:
+      operationId: deleteContaAPagar
+      tags: [contasAPagar]
+      summary: Excluir conta a pagar
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Excluído
+
+  /contas-a-pagar/{id}/pagar:
+    post:
+      operationId: pagarContaAPagar
+      tags: [contasAPagar]
+      summary: Marcar conta a pagar como paga
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PagamentoInput"
+      responses:
+        "200":
+          description: Conta paga
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAPagar"
+
+  # ─────────────────────────── CONTAS A RECEBER ───────────────────────────
+  /contas-a-receber:
+    get:
+      operationId: listContasAReceber
+      tags: [contasAReceber]
+      summary: Listar contas a receber
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pendente, recebido, vencido, cancelado]
+        - name: dataInicio
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: dataFim
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: busca
+          in: query
+          schema:
+            type: ["string", "null"]
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: Lista de contas a receber
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAReceberListResponse"
+    post:
+      operationId: createContaAReceber
+      tags: [contasAReceber]
+      summary: Criar conta a receber
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaAReceberInput"
+      responses:
+        "201":
+          description: Conta a receber criada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAReceber"
+
+  /contas-a-receber/{id}:
+    get:
+      operationId: getContaAReceber
+      tags: [contasAReceber]
+      summary: Buscar conta a receber por ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Conta a receber
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAReceber"
+        "404":
+          description: Não encontrado
+    patch:
+      operationId: updateContaAReceber
+      tags: [contasAReceber]
+      summary: Atualizar conta a receber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ContaAReceberUpdate"
+      responses:
+        "200":
+          description: Conta a receber atualizada
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAReceber"
+    delete:
+      operationId: deleteContaAReceber
+      tags: [contasAReceber]
+      summary: Excluir conta a receber
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Excluído
+
+  /contas-a-receber/{id}/receber:
+    post:
+      operationId: receberContaAReceber
+      tags: [contasAReceber]
+      summary: Marcar conta a receber como recebida
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RecebimentoInput"
+      responses:
+        "200":
+          description: Conta recebida
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ContaAReceber"
+
+  # ─────────────────────────── FLUXO DE CAIXA ───────────────────────────
+  /fluxo-caixa:
+    get:
+      operationId: getFluxoCaixa
+      tags: [fluxoCaixa]
+      summary: Obter fluxo de caixa por período
+      parameters:
+        - name: dataInicio
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: dataFim
+          in: query
+          required: true
+          schema:
+            type: string
+            format: date
+        - name: agrupamento
+          in: query
+          schema:
+            type: string
+            enum: [dia, semana, mes]
+            default: mes
+      responses:
+        "200":
+          description: Fluxo de caixa
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/FluxoCaixaResponse"
+
+  # ─────────────────────────── DASHBOARD ───────────────────────────
+  /dashboard/resumo:
+    get:
+      operationId: getDashboardResumo
+      tags: [dashboard]
+      summary: Resumo financeiro do dashboard
+      parameters:
+        - name: mes
+          in: query
+          schema:
+            type: integer
+        - name: ano
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Resumo do dashboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardResumo"
+
+  /dashboard/grafico-mensal:
+    get:
+      operationId: getGraficoMensal
+      tags: [dashboard]
+      summary: Dados para gráfico de receitas e despesas mensais
+      parameters:
+        - name: ano
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Dados mensais para gráfico
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GraficoMensalItem"
+
+  /dashboard/por-categoria:
+    get:
+      operationId: getGraficoPorCategoria
+      tags: [dashboard]
+      summary: Totais agrupados por categoria
+      parameters:
+        - name: tipo
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [receita, despesa]
+        - name: mes
+          in: query
+          schema:
+            type: integer
+        - name: ano
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Totais por categoria
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/GraficoCategoriaItem"
+
+  /dashboard/ultimas-transacoes:
+    get:
+      operationId: getUltimasTransacoes
+      tags: [dashboard]
+      summary: Últimas transações para o dashboard
+      parameters:
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 10
+      responses:
+        "200":
+          description: Últimas transações
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Transacao"
+
+  /dashboard/alertas:
+    get:
+      operationId: getDashboardAlertas
+      tags: [dashboard]
+      summary: Alertas de contas vencidas ou próximas do vencimento
+      responses:
+        "200":
+          description: Alertas
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DashboardAlertas"
+
+  # ─────────────────────────── RELATÓRIOS / EXPORTAÇÃO ───────────────────────────
+  /relatorios/exportar:
+    get:
+      operationId: exportarRelatorio
+      tags: [relatorios]
+      summary: Exportar relatório em JSON estruturado para geração de Excel/PDF no cliente
+      parameters:
+        - name: tipo
+          in: query
+          required: true
+          schema:
+            type: string
+            enum: [transacoes, contasAPagar, contasAReceber, fluxoCaixa]
+        - name: dataInicio
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: dataFim
+          in: query
+          schema:
+            type: ["string", "null"]
+            format: date
+        - name: formato
+          in: query
+          schema:
+            type: string
+            enum: [excel, pdf]
+            default: excel
+      responses:
+        "200":
+          description: Dados estruturados para exportação
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RelatorioExportData"
+
 components:
   schemas:
     HealthStatus:
@@ -34,3 +828,588 @@ components:
       required:
         - status
 
+    # ─────── CATEGORIAS ───────
+    Categoria:
+      type: object
+      required: [id, nome, tipo, cor, icone, createdAt]
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        cor:
+          type: string
+        icone:
+          type: string
+        descricao:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    CategoriaInput:
+      type: object
+      required: [nome, tipo, cor, icone]
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        cor:
+          type: string
+        icone:
+          type: string
+        descricao:
+          type: string
+
+    CategoriaUpdate:
+      type: object
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        cor:
+          type: string
+        icone:
+          type: string
+        descricao:
+          type: string
+
+    # ─────── CONTAS ───────
+    Conta:
+      type: object
+      required: [id, nome, tipo, saldoInicial, saldoAtual, ativa, createdAt]
+      properties:
+        id:
+          type: integer
+        nome:
+          type: string
+        tipo:
+          type: string
+          enum: [corrente, poupanca, investimento, carteira, outro]
+        banco:
+          type: ["string", "null"]
+        saldoInicial:
+          type: number
+        saldoAtual:
+          type: number
+        cor:
+          type: ["string", "null"]
+        ativa:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ContaInput:
+      type: object
+      required: [nome, tipo, saldoInicial]
+      properties:
+        nome:
+          type: string
+          minLength: 1
+        tipo:
+          type: string
+          enum: [corrente, poupanca, investimento, carteira, outro]
+        banco:
+          type: string
+        saldoInicial:
+          type: number
+        cor:
+          type: string
+
+    ContaUpdate:
+      type: object
+      properties:
+        nome:
+          type: string
+        tipo:
+          type: string
+          enum: [corrente, poupanca, investimento, carteira, outro]
+        banco:
+          type: string
+        cor:
+          type: string
+        ativa:
+          type: boolean
+
+    # ─────── TRANSAÇÕES ───────
+    Transacao:
+      type: object
+      required: [id, descricao, valor, tipo, data, status, createdAt]
+      properties:
+        id:
+          type: integer
+        descricao:
+          type: string
+        valor:
+          type: number
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pendente, confirmado, cancelado]
+        observacoes:
+          type: ["string", "null"]
+        categoriaId:
+          type: ["integer", "null"]
+        categoriaNome:
+          type: ["string", "null"]
+        categoriaIcone:
+          type: ["string", "null"]
+        categoriaCor:
+          type: ["string", "null"]
+        contaId:
+          type: ["integer", "null"]
+        contaNome:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+          format: date-time
+
+    TransacaoInput:
+      type: object
+      required: [descricao, valor, tipo, data]
+      properties:
+        descricao:
+          type: string
+          minLength: 1
+        valor:
+          type: number
+          minimum: 0.01
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pendente, confirmado, cancelado]
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+
+    TransacaoUpdate:
+      type: object
+      properties:
+        descricao:
+          type: string
+        valor:
+          type: number
+          minimum: 0.01
+        tipo:
+          type: string
+          enum: [receita, despesa]
+        data:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pendente, confirmado, cancelado]
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+
+    TransacaoListResponse:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/Transacao"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    # ─────── CONTAS A PAGAR ───────
+    ContaAPagar:
+      type: object
+      required: [id, descricao, valor, dataVencimento, status, createdAt]
+      properties:
+        id:
+          type: integer
+        descricao:
+          type: string
+        fornecedor:
+          type: ["string", "null"]
+        valor:
+          type: number
+        dataVencimento:
+          type: string
+          format: date
+        dataPagamento:
+          type: ["string", "null"]
+          format: date
+        valorPago:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [pendente, pago, vencido, cancelado]
+        observacoes:
+          type: ["string", "null"]
+        categoriaId:
+          type: ["integer", "null"]
+        categoriaNome:
+          type: ["string", "null"]
+        contaId:
+          type: ["integer", "null"]
+        contaNome:
+          type: ["string", "null"]
+        recorrente:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ContaAPagarInput:
+      type: object
+      required: [descricao, valor, dataVencimento]
+      properties:
+        descricao:
+          type: string
+          minLength: 1
+        fornecedor:
+          type: string
+        valor:
+          type: number
+          minimum: 0.01
+        dataVencimento:
+          type: string
+          format: date
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+        recorrente:
+          type: boolean
+
+    ContaAPagarUpdate:
+      type: object
+      properties:
+        descricao:
+          type: string
+        fornecedor:
+          type: string
+        valor:
+          type: number
+        dataVencimento:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pendente, pago, vencido, cancelado]
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+        recorrente:
+          type: boolean
+
+    PagamentoInput:
+      type: object
+      required: [dataPagamento]
+      properties:
+        dataPagamento:
+          type: string
+          format: date
+        valorPago:
+          type: number
+        contaId:
+          type: ["integer", "null"]
+
+    ContaAPagarListResponse:
+      type: object
+      required: [data, total, page, limit, totalPendente, totalVencido]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaAPagar"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPendente:
+          type: number
+        totalVencido:
+          type: number
+
+    # ─────── CONTAS A RECEBER ───────
+    ContaAReceber:
+      type: object
+      required: [id, descricao, valor, dataVencimento, status, createdAt]
+      properties:
+        id:
+          type: integer
+        descricao:
+          type: string
+        cliente:
+          type: ["string", "null"]
+        valor:
+          type: number
+        dataVencimento:
+          type: string
+          format: date
+        dataRecebimento:
+          type: ["string", "null"]
+          format: date
+        valorRecebido:
+          type: ["number", "null"]
+        status:
+          type: string
+          enum: [pendente, recebido, vencido, cancelado]
+        observacoes:
+          type: ["string", "null"]
+        categoriaId:
+          type: ["integer", "null"]
+        categoriaNome:
+          type: ["string", "null"]
+        contaId:
+          type: ["integer", "null"]
+        contaNome:
+          type: ["string", "null"]
+        recorrente:
+          type: boolean
+        createdAt:
+          type: string
+          format: date-time
+
+    ContaAReceberInput:
+      type: object
+      required: [descricao, valor, dataVencimento]
+      properties:
+        descricao:
+          type: string
+          minLength: 1
+        cliente:
+          type: string
+        valor:
+          type: number
+          minimum: 0.01
+        dataVencimento:
+          type: string
+          format: date
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+        recorrente:
+          type: boolean
+
+    ContaAReceberUpdate:
+      type: object
+      properties:
+        descricao:
+          type: string
+        cliente:
+          type: string
+        valor:
+          type: number
+        dataVencimento:
+          type: string
+          format: date
+        status:
+          type: string
+          enum: [pendente, recebido, vencido, cancelado]
+        observacoes:
+          type: string
+        categoriaId:
+          type: ["integer", "null"]
+        contaId:
+          type: ["integer", "null"]
+        recorrente:
+          type: boolean
+
+    RecebimentoInput:
+      type: object
+      required: [dataRecebimento]
+      properties:
+        dataRecebimento:
+          type: string
+          format: date
+        valorRecebido:
+          type: number
+        contaId:
+          type: ["integer", "null"]
+
+    ContaAReceberListResponse:
+      type: object
+      required: [data, total, page, limit, totalPendente, totalVencido]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ContaAReceber"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        totalPendente:
+          type: number
+        totalVencido:
+          type: number
+
+    # ─────── FLUXO DE CAIXA ───────
+    FluxoCaixaItem:
+      type: object
+      required: [periodo, receitas, despesas, saldo, saldoAcumulado]
+      properties:
+        periodo:
+          type: string
+        receitas:
+          type: number
+        despesas:
+          type: number
+        saldo:
+          type: number
+        saldoAcumulado:
+          type: number
+
+    FluxoCaixaResponse:
+      type: object
+      required: [items, totalReceitas, totalDespesas, saldoFinal]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/FluxoCaixaItem"
+        totalReceitas:
+          type: number
+        totalDespesas:
+          type: number
+        saldoFinal:
+          type: number
+
+    # ─────── DASHBOARD ───────
+    DashboardResumo:
+      type: object
+      required: [receitasMes, despesasMes, saldoMes, totalContasAPagarPendente, totalContasAReceberPendente, saldoTotalContas, variacao]
+      properties:
+        receitasMes:
+          type: number
+        despesasMes:
+          type: number
+        saldoMes:
+          type: number
+        totalContasAPagarPendente:
+          type: number
+        totalContasAReceberPendente:
+          type: number
+        saldoTotalContas:
+          type: number
+        variacao:
+          $ref: "#/components/schemas/VariacaoResumo"
+
+    VariacaoResumo:
+      type: object
+      required: [receitas, despesas, saldo]
+      properties:
+        receitas:
+          type: number
+        despesas:
+          type: number
+        saldo:
+          type: number
+
+    GraficoMensalItem:
+      type: object
+      required: [mes, receitas, despesas, saldo]
+      properties:
+        mes:
+          type: string
+        receitas:
+          type: number
+        despesas:
+          type: number
+        saldo:
+          type: number
+
+    GraficoCategoriaItem:
+      type: object
+      required: [categoriaId, categoriaNome, cor, icone, total, percentual]
+      properties:
+        categoriaId:
+          type: integer
+        categoriaNome:
+          type: string
+        cor:
+          type: string
+        icone:
+          type: string
+        total:
+          type: number
+        percentual:
+          type: number
+
+    DashboardAlertas:
+      type: object
+      required: [contasVencidas, contasVencendoHoje, contasVencendoSemana]
+      properties:
+        contasVencidas:
+          type: integer
+        contasVencendoHoje:
+          type: integer
+        contasVencendoSemana:
+          type: integer
+        totalVencido:
+          type: number
+
+    # ─────── RELATÓRIOS ───────
+    RelatorioExportData:
+      type: object
+      required: [tipo, titulo, geradoEm, colunas, linhas]
+      properties:
+        tipo:
+          type: string
+        titulo:
+          type: string
+        geradoEm:
+          type: string
+          format: date-time
+        periodo:
+          type: ["string", "null"]
+        colunas:
+          type: array
+          items:
+            type: string
+        linhas:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        totais:
+          type: object
+          additionalProperties: true

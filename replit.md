@@ -1,36 +1,54 @@
-# [Project name]
+# Sistema Financeiro
 
-_Replace the heading above with the project's name, and this line with one sentence describing what this app does for users._
+Um sistema financeiro completo em português para controle de receitas, despesas, contas a pagar/receber, fluxo de caixa e relatórios.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
-- `pnpm run typecheck` — full typecheck across all packages
-- `pnpm run build` — typecheck + build all packages
-- `pnpm --filter @workspace/api-spec run codegen` — regenerate API hooks and Zod schemas from the OpenAPI spec
-- `pnpm --filter @workspace/db run push` — push DB schema changes (dev only)
-- Required env: `DATABASE_URL` — Postgres connection string
+- `pnpm --filter @workspace/api-server run dev` — API server (porta 8080, proxy em /api)
+- `pnpm --filter @workspace/financeiro run dev` — Frontend React/Vite
+- `pnpm run typecheck` — typecheck completo
+- `pnpm run build` — typecheck + build todos os pacotes
+- `pnpm --filter @workspace/api-spec run codegen` — regenerar hooks React Query e schemas Zod
+- `pnpm --filter @workspace/db run push` — aplicar mudanças no schema do banco (dev)
+- Variável obrigatória: `DATABASE_URL` — connection string do PostgreSQL
 
 ## Stack
 
 - pnpm workspaces, Node.js 24, TypeScript 5.9
-- API: Express 5
+- Frontend: React + Vite, Tailwind CSS, Recharts, Wouter, React Query
+- API: Express 5 + Pino logging
 - DB: PostgreSQL + Drizzle ORM
-- Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec)
-- Build: esbuild (CJS bundle)
+- Validação: Zod (zod/v4), drizzle-zod
+- Codegen: Orval (OpenAPI spec → hooks + schemas)
+- Exportação: xlsx (Excel), jspdf + jspdf-autotable (PDF)
 
 ## Where things live
 
-_Populate as you build — short repo map plus pointers to the source-of-truth file for DB schema, API contracts, theme files, etc._
+- `lib/api-spec/openapi.yaml` — especificação OpenAPI (fonte da verdade)
+- `lib/db/src/schema/` — schemas do banco (categorias, contas, transacoes, contasAPagar, contasAReceber)
+- `artifacts/api-server/src/routes/` — rotas da API
+- `artifacts/financeiro/src/` — frontend React
+- `lib/api-client-react/src/generated/` — hooks gerados (não editar manualmente)
+- `lib/api-zod/src/generated/` — schemas Zod gerados (não editar manualmente)
 
 ## Architecture decisions
 
-_Populate as you build — non-obvious choices a reader couldn't infer from the code (3-5 bullets)._
+- OpenAPI-first: a spec em `lib/api-spec/openapi.yaml` é a fonte da verdade; nunca editar os arquivos gerados
+- Datas usam `date(..., { mode: "string" })` no Drizzle para preservar o dia sem shift de timezone
+- Campos numéricos monetários são armazenados como `numeric` no PostgreSQL e convertidos via `parseFloat()` nas respostas
+- Saldo das contas é recalculado automaticamente ao criar/atualizar/excluir transações confirmadas
+- Contas vencidas são auto-marcadas como "vencido" na listagem (antes de aplicar filtros)
+- Exportação Excel/PDF é gerada no cliente a partir de dados estruturados retornados pela API
 
 ## Product
 
-_Describe the high-level user-facing capabilities of this app once they exist._
+- **Dashboard**: KPIs do mês atual, variação vs mês anterior, gráfico de barras mensal, pizza por categoria, últimas transações, alertas de vencimento
+- **Transações**: CRUD completo, filtros por tipo/categoria/conta/status/período, pesquisa por texto, paginação, exportação Excel/PDF
+- **Categorias**: CRUD com cor e ícone, separadas por receita/despesa
+- **Contas**: CRUD de contas bancárias/carteiras com saldo calculado automaticamente
+- **Contas a Pagar**: listagem com status (pendente/pago/vencido/cancelado), ação de "Pagar" com modal, exportação
+- **Contas a Receber**: listagem com status, ação de "Receber" com modal, exportação
+- **Fluxo de Caixa**: gráfico de área com saldo acumulado, agrupamento por dia/semana/mês, tabela detalhada
 
 ## User preferences
 
@@ -38,8 +56,7 @@ _Populate as you build — explicit user instructions worth remembering across s
 
 ## Gotchas
 
-_Populate as you build — sharp edges, "always run X before Y" rules._
-
-## Pointers
-
-- See the `pnpm-workspace` skill for workspace structure, TypeScript setup, and package details
+- Ao mudar o tipo/localização de uma transação, o saldo de ambas as contas (antiga e nova) é recalculado
+- Os schemas Zod gerados usam `zod.coerce.date()` para campos de data — converter sempre para string YYYY-MM-DD antes de usar no Drizzle com `toDateStr()`
+- Rodar `pnpm run typecheck:libs` antes de `pnpm --filter @workspace/api-server run typecheck` se houver mudanças em `lib/db`
+- Nunca usar `orderBy(sql\`coluna DESC\`)` com colunas Drizzle — usar `desc(coluna)` do drizzle-orm
